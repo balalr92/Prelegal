@@ -7,37 +7,43 @@ import {
   StyleSheet,
 } from "@react-pdf/renderer"
 import type { NdaFormData } from "@/lib/nda-schema"
+import {
+  type Clause,
+  parseClauses,
+  formatMndaTerm,
+  formatConfidentialityTerm,
+} from "@/lib/nda-utils"
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   page: {
-    paddingTop: 72,
-    paddingBottom: 72,
-    paddingHorizontal: 72,
+    paddingTop: 48,
+    paddingBottom: 48,
+    paddingHorizontal: 54,
     fontSize: 10,
-    lineHeight: 1.6,
+    lineHeight: 1.4,
     fontFamily: "Times-Roman",
     color: "#111",
   },
   title: {
-    fontSize: 18,
+    fontSize: 16,
     fontFamily: "Times-Bold",
     textAlign: "center",
-    marginBottom: 6,
+    marginBottom: 4,
   },
   subtitle: {
     fontSize: 9,
     textAlign: "center",
     color: "#555",
-    marginBottom: 32,
+    marginBottom: 14,
   },
   divider: {
     borderBottom: "1px solid #ccc",
     marginVertical: 16,
   },
   fieldRow: {
-    marginBottom: 14,
+    marginBottom: 8,
   },
   fieldLabel: {
     fontSize: 7,
@@ -61,18 +67,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   tableSection: {
-    marginTop: 28,
+    marginTop: 12,
   },
   tableHeader: {
     flexDirection: "row",
     backgroundColor: "#f3f4f6",
   },
   tableHeaderCell: {
-    paddingVertical: 8,
+    paddingVertical: 5,
     paddingHorizontal: 6,
     backgroundColor: "#f3f4f6",
     borderBottom: "1px solid #ccc",
-    marginBottom: 10,
+    marginBottom: 8,
   },
   tableHeaderCellText: {
     fontFamily: "Times-Bold",
@@ -103,8 +109,8 @@ const styles = StyleSheet.create({
   },
   sigBlock: {
     borderBottom: "1px solid #000",
-    height: 28,
-    marginBottom: 14,
+    height: 20,
+    marginBottom: 8,
   },
   clause: {
     marginBottom: 10,
@@ -117,8 +123,8 @@ const styles = StyleSheet.create({
     fontSize: 8,
     color: "#888",
     textAlign: "center",
-    marginTop: 28,
-    paddingTop: 8,
+    marginTop: 12,
+    paddingTop: 6,
     borderTop: "1px solid #ddd",
   },
   pageNumber: {
@@ -133,43 +139,6 @@ const styles = StyleSheet.create({
 })
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-interface Clause {
-  num: string
-  title: string
-  body: string
-}
-
-function parseClauses(markdown: string): Clause[] {
-  const clauses: Clause[] = []
-  for (const line of markdown.split("\n")) {
-    const trimmed = line.trim()
-    const match = trimmed.match(/^(\d+)\.\s+\*\*([^*]+)\*\*\.\s+(.+)$/)
-    if (match) {
-      clauses.push({
-        num: match[1],
-        title: match[2],
-        // Strip HTML span tags, keep their text content
-        body: match[3].replace(/<span[^>]*>(.*?)<\/span>/g, "$1"),
-      })
-    }
-  }
-  return clauses
-}
-
-function formatMndaTerm(data: NdaFormData): string {
-  if (data.mndaTermType === "expires") {
-    return `Expires ${data.mndaTermYears || "1"} year(s) from Effective Date`
-  }
-  return "Continues until terminated in accordance with the MNDA terms"
-}
-
-function formatConfidentialityTerm(data: NdaFormData): string {
-  if (data.confidentialityTermType === "years") {
-    return `${data.confidentialityTermYears || "1"} year(s) from Effective Date (or, for trade secrets, until no longer a trade secret under applicable law)`
-  }
-  return "In perpetuity"
-}
 
 function Field({ label, value }: { label: string; value?: string }) {
   return (
@@ -199,11 +168,11 @@ function PartyColumn({
         <Text style={styles.tableHeaderCellText}>{heading}</Text>
       </View>
 
-      <View style={{ padding: "10 0" }}>
+      <View style={{ padding: "6 0" }}>
         <Text style={styles.tableCellLabel}>Company</Text>
         <Text style={styles.tableCellValue}>{company || " "}</Text>
 
-        <View style={{ marginTop: 12 }}>
+        <View style={{ marginTop: 7 }}>
           <Text style={styles.tableCellLabel}>Signature</Text>
           <View style={styles.sigBlock} />
         </View>
@@ -211,17 +180,17 @@ function PartyColumn({
         <Text style={styles.tableCellLabel}>Print Name</Text>
         <Text style={styles.tableCellValue}>{name || " "}</Text>
 
-        <View style={{ marginTop: 10 }}>
+        <View style={{ marginTop: 7 }}>
           <Text style={styles.tableCellLabel}>Title</Text>
           <Text style={styles.tableCellValue}>{title || " "}</Text>
         </View>
 
-        <View style={{ marginTop: 10 }}>
+        <View style={{ marginTop: 7 }}>
           <Text style={styles.tableCellLabel}>Notice Address</Text>
           <Text style={styles.tableCellValue}>{address || " "}</Text>
         </View>
 
-        <View style={{ marginTop: 12 }}>
+        <View style={{ marginTop: 7 }}>
           <Text style={styles.tableCellLabel}>Date</Text>
           <View style={styles.sigBlock} />
         </View>
