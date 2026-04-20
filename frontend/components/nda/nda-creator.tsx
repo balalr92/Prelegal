@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, Suspense } from "react"
+import React, { useState, useEffect, useMemo, Suspense } from "react"
 import dynamic from "next/dynamic"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -91,6 +91,13 @@ export function NdaCreator({ standardTerms }: { standardTerms: string }) {
 
   const mndaTermType = watch("mndaTermType")
   const confidentialityTermType = watch("confidentialityTermType")
+
+  // Memoize the document element so PDFViewer only regenerates when pdfData
+  // actually changes (after the debounce), not on every keystroke re-render
+  const pdfDocument = useMemo(
+    () => <NdaDocument data={pdfData} standardTerms={standardTerms} />,
+    [pdfData, standardTerms]
+  )
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
@@ -387,9 +394,7 @@ export function NdaCreator({ standardTerms }: { standardTerms: string }) {
             }
           >
             <PDFDownloadLink
-              document={
-                <NdaDocument data={pdfData} standardTerms={standardTerms} />
-              }
+              document={pdfDocument}
               fileName="mutual-nda.pdf"
               className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-lg transition shadow-sm"
             >
@@ -413,7 +418,7 @@ export function NdaCreator({ standardTerms }: { standardTerms: string }) {
               style={{ width: "100%", height: "100%", border: "none" }}
               showToolbar={false}
             >
-              <NdaDocument data={pdfData} standardTerms={standardTerms} />
+              {pdfDocument}
             </PDFViewer>
           </Suspense>
         </div>
