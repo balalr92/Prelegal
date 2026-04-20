@@ -68,12 +68,16 @@ const styles = StyleSheet.create({
     backgroundColor: "#f3f4f6",
   },
   tableHeaderCell: {
-    flex: 1,
-    padding: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    backgroundColor: "#f3f4f6",
+    borderBottom: "1px solid #ccc",
+    marginBottom: 10,
+  },
+  tableHeaderCellText: {
     fontFamily: "Times-Bold",
     fontSize: 10,
     textAlign: "center",
-    borderBottom: "1px solid #ccc",
   },
   tableRow: {
     flexDirection: "row",
@@ -192,7 +196,7 @@ function PartyColumn({
   return (
     <View style={styles.col}>
       <View style={styles.tableHeaderCell}>
-        <Text style={styles.bold}>{heading}</Text>
+        <Text style={styles.tableHeaderCellText}>{heading}</Text>
       </View>
 
       <View style={{ padding: "10 0" }}>
