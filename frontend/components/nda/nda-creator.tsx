@@ -77,13 +77,17 @@ export function NdaCreator({ standardTerms }: { standardTerms: string }) {
   })
 
   // Debounce PDF data so it doesn't regenerate on every keystroke
-  const liveData = watch()
+  // Serialize to a stable string so the effect only fires when values actually
+  // change, not on every render (watch() always returns a new object reference)
+  const serializedData = JSON.stringify(watch())
   const [pdfData, setPdfData] = useState<NdaFormData>(defaultNdaValues)
 
   useEffect(() => {
-    const timer = setTimeout(() => setPdfData(liveData), 400)
+    const parsed = JSON.parse(serializedData) as NdaFormData
+    const timer = setTimeout(() => setPdfData(parsed), 400)
     return () => clearTimeout(timer)
-  }, [liveData])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serializedData])
 
   const mndaTermType = watch("mndaTermType")
   const confidentialityTermType = watch("confidentialityTermType")
