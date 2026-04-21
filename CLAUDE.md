@@ -8,7 +8,10 @@ The available documents are covered in the catalog.json file in the project root
 
 @catalog.json
 
-The current implementation supports all 11 document types via AI chat with full user authentication and document persistence.
+**Current implementation status (as of PL-4):**
+- V1 technical foundation is in place: FastAPI backend (`backend/`), Next.js frontend statically built and served by FastAPI, SQLite database initialised on startup with a `users` table, Dockerfile (multi-stage build), and start/stop scripts for Mac, Linux, and Windows.
+- A fake login screen (`/`) navigates directly to the platform shell (`/platform/`) — no real authentication yet.
+- Only the Mutual NDA creator is implemented (form + live PDF preview, client-side only). AI chat, real authentication, multi-document support, and document persistence are not yet built.
 
 ## Development process
 
@@ -26,12 +29,11 @@ There is an OPENAI_API_KEY in the .env file in the project root.
 
 ## Technical design
 
-The entire project should be packaged into a Docker container.  
-The backend should be in backend/ and be a uv project, using FastAPI.  
-The frontend should be in frontend/  
-The database should use SQLLite and be created from scratch each time the Docker container is brought up, allowing for a users table with sign up and sign in.  
-Consider statically building the frontend and serving it via FastAPI, if that will work.  
-There should be scripts in scripts/ for:  
+The entire project is packaged into a Docker container (multi-stage build: Node builds Next.js static export, Python runtime serves it via FastAPI).  
+The backend is in `backend/` — a uv project using FastAPI, running at http://localhost:8000.  
+The frontend is in `frontend/` — Next.js with `output: 'export'`; the static build (`out/`) is served by FastAPI via `StaticFiles`.  
+The database uses SQLite (`prelegal.db`), created from scratch each time the container starts, with a `users` table for future sign-up and sign-in.  
+Scripts are in `scripts/` for:  
 ```bash
 # Mac
 scripts/start-mac.sh    # Start
