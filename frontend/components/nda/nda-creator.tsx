@@ -100,7 +100,7 @@ export function NdaCreator({ standardTerms }: { standardTerms: string }) {
   )
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden">
+    <div className="flex h-full bg-slate-50 overflow-hidden">
       {/* ── Left: Form ── */}
       <aside className="w-[440px] shrink-0 flex flex-col border-r border-slate-200 bg-white overflow-hidden">
         {/* Form header */}

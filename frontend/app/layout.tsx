@@ -5,8 +5,8 @@ import "./globals.css"
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist" })
 
 export const metadata: Metadata = {
-  title: "Prelegal — Mutual NDA Creator",
-  description: "Generate a Common Paper Mutual NDA in seconds",
+  title: "Prelegal",
+  description: "Draft legal agreements in seconds",
 }
 
 export default function RootLayout({
