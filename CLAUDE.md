@@ -12,7 +12,7 @@ The available documents are covered in the catalog.json file in the project root
 - V1 technical foundation is in place: FastAPI backend (`backend/`), Next.js frontend statically built and served by FastAPI, SQLite database initialised on startup with a `users` table, Dockerfile (multi-stage build), and start/stop scripts for Mac, Linux, and Windows.
 - A fake login screen (`/`) navigates directly to the platform shell (`/platform/`) — no real authentication yet.
 - `/platform` shows a catalog grid of all 11 supported document types plus a "Help me choose" card.
-- Each document card links to `/platform/[slug]` — a dynamic route with `generateStaticParams` for static export.
+- Each document card links to `/platform/[slug]` — a dynamic route with `generateStaticParams` for static export. The `SLUG_TO_FILENAME` map and `buildCatalog` helper in `frontend/lib/catalog.ts` drive slug resolution across all three page types.
 - The Mutual NDA uses the existing AI chat interface (`frontend/components/nda/nda-chat.tsx`) with live PDF preview.
 - All other documents use the generic `DocChat` + `DocDocument` components (`frontend/components/doc/`), which render a cover page from extracted fields and paginate the standard terms body.
 - `/platform/help` is an AI chat (`frontend/components/help/help-chat.tsx`) that recommends the right document from a user's description and links directly to the creation flow.
