@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef, Suspense } from "react"
 import dynamic from "next/dynamic"
+import ReactMarkdown from "react-markdown"
 import { defaultNdaValues, type NdaFormData } from "@/lib/nda-schema"
 import { NdaDocument } from "./nda-document"
 
@@ -161,22 +162,35 @@ export function NdaChat({ standardTerms }: { standardTerms: string }) {
               className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
             >
               <div
-                className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
+                className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
                   msg.role === "user"
-                    ? "text-white rounded-br-sm"
+                    ? "text-white rounded-br-sm whitespace-pre-wrap"
                     : "bg-slate-100 text-slate-800 rounded-bl-sm"
                 }`}
                 style={msg.role === "user" ? { backgroundColor: "#209dd7" } : undefined}
               >
-                {msg.content || (
-                  isStreaming && i === messages.length - 1 ? (
-                    <span className="inline-flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:0ms]" />
-                      <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:150ms]" />
-                      <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:300ms]" />
-                    </span>
-                  ) : null
-                )}
+                {msg.role === "user" ? (
+                  msg.content
+                ) : msg.content ? (
+                  <ReactMarkdown
+                    components={{
+                      p: ({ children }) => <p className="mb-1.5 last:mb-0">{children}</p>,
+                      strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                      ul: ({ children }) => <ul className="list-disc ml-4 mb-1.5 space-y-0.5">{children}</ul>,
+                      ol: ({ children }) => <ol className="list-decimal ml-4 mb-1.5 space-y-0.5">{children}</ol>,
+                      li: ({ children }) => <li>{children}</li>,
+                      code: ({ children }) => <code className="bg-slate-200 px-1 rounded text-xs font-mono">{children}</code>,
+                    }}
+                  >
+                    {msg.content}
+                  </ReactMarkdown>
+                ) : isStreaming && i === messages.length - 1 ? (
+                  <span className="inline-flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:0ms]" />
+                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:150ms]" />
+                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:300ms]" />
+                  </span>
+                ) : null}
               </div>
             </div>
           ))}
