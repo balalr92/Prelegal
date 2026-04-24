@@ -8,10 +8,13 @@ The available documents are covered in the catalog.json file in the project root
 
 @catalog.json
 
-**Current implementation status (as of PL-4):**
+**Current implementation status (as of PL-5):**
 - V1 technical foundation is in place: FastAPI backend (`backend/`), Next.js frontend statically built and served by FastAPI, SQLite database initialised on startup with a `users` table, Dockerfile (multi-stage build), and start/stop scripts for Mac, Linux, and Windows.
 - A fake login screen (`/`) navigates directly to the platform shell (`/platform/`) — no real authentication yet.
-- Only the Mutual NDA creator is implemented (form + live PDF preview, client-side only). AI chat, real authentication, multi-document support, and document persistence are not yet built.
+- The Mutual NDA creator uses an AI chat interface (`frontend/components/nda/nda-chat.tsx`): the AI greets the user, asks questions to collect all NDA fields, and the PDF preview updates live as fields are extracted.
+- The chat backend is at `POST /api/chat` (`backend/chat.py`): streams a `gpt-5.4-mini` response via SSE, then runs a structured-output extraction to populate fields.
+- Markdown is rendered in AI chat responses via `react-markdown`.
+- Real authentication, multi-document support, and document persistence are not yet built.
 
 ## Development process
 
