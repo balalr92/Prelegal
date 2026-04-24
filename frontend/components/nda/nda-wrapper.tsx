@@ -3,11 +3,11 @@
 import dynamic from "next/dynamic"
 
 // ssr: false must live in a Client Component in Next.js 16+
-const NdaCreator = dynamic(
-  () => import("./nda-creator").then((m) => m.NdaCreator),
+const NdaChat = dynamic(
+  () => import("./nda-chat").then((m) => m.NdaChat),
   { ssr: false }
 )
 
 export function NdaWrapper({ standardTerms }: { standardTerms: string }) {
-  return <NdaCreator standardTerms={standardTerms} />
+  return <NdaChat standardTerms={standardTerms} />
 }
