@@ -8,13 +8,17 @@ The available documents are covered in the catalog.json file in the project root
 
 @catalog.json
 
-**Current implementation status (as of PL-5):**
+**Current implementation status (as of PL-6):**
 - V1 technical foundation is in place: FastAPI backend (`backend/`), Next.js frontend statically built and served by FastAPI, SQLite database initialised on startup with a `users` table, Dockerfile (multi-stage build), and start/stop scripts for Mac, Linux, and Windows.
 - A fake login screen (`/`) navigates directly to the platform shell (`/platform/`) — no real authentication yet.
-- The Mutual NDA creator uses an AI chat interface (`frontend/components/nda/nda-chat.tsx`): the AI greets the user, asks questions to collect all NDA fields, and the PDF preview updates live as fields are extracted.
-- The chat backend is at `POST /api/chat` (`backend/chat.py`): streams a `gpt-5.4-mini` response via SSE, then runs a structured-output extraction to populate fields.
+- `/platform` shows a catalog grid of all 11 supported document types plus a "Help me choose" card.
+- Each document card links to `/platform/[slug]` — a dynamic route with `generateStaticParams` for static export.
+- The Mutual NDA uses the existing AI chat interface (`frontend/components/nda/nda-chat.tsx`) with live PDF preview.
+- All other documents use the generic `DocChat` + `DocDocument` components (`frontend/components/doc/`), which render a cover page from extracted fields and paginate the standard terms body.
+- `/platform/help` is an AI chat (`frontend/components/help/help-chat.tsx`) that recommends the right document from a user's description and links directly to the creation flow.
+- The chat backend (`POST /api/chat`, `backend/chat.py`) routes by `doc_type`: `mutual-nda` uses `NdaFieldsPartial`, `help` uses `HelpFields`, all other slugs use `GenericDocFields` (55 optional fields). Unknown `doc_type` values return HTTP 422.
 - Markdown is rendered in AI chat responses via `react-markdown`.
-- Real authentication, multi-document support, and document persistence are not yet built.
+- Real authentication and document persistence are not yet built.
 
 ## Development process
 
