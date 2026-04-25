@@ -5,6 +5,7 @@ COPY frontend/package*.json ./frontend/
 RUN cd frontend && npm ci
 COPY frontend/ ./frontend/
 COPY templates/ ./templates/
+COPY catalog.json ./catalog.json
 RUN cd frontend && npm run build
 
 # Stage 2: Runtime (FastAPI + static files)

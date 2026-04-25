@@ -197,6 +197,9 @@ export function HelpChat({ catalog }: { catalog: CatalogEntry[] }) {
             </button>
           </div>
         </div>
+        <p className="mt-2 text-xs text-center" style={{ color: "#888888" }}>
+          AI-generated documents are drafts only and do not constitute legal advice. Consult a qualified attorney before executing any agreement.
+        </p>
       </div>
     </div>
   )

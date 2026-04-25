@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useRef, Suspense } from "react"
 import dynamic from "next/dynamic"
 import ReactMarkdown from "react-markdown"
 import { DocDocument } from "./doc-document"
+import { authHeader, getToken } from "@/lib/auth"
 
 const PDFViewer = dynamic(
   () => import("@react-pdf/renderer").then((m) => m.PDFViewer),
@@ -30,6 +31,7 @@ export function DocChat({
   const [input, setInput] = useState("")
   const [isStreaming, setIsStreaming] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const latestFieldsRef = useRef<Record<string, string>>({})
 
   // Debounce PDF updates
   const serializedFields = JSON.stringify(fields)
@@ -54,6 +56,15 @@ export function DocChat({
     () => <DocDocument data={pdfData} docTitle={docTitle} standardTerms={standardTerms} />,
     [pdfData, docTitle, standardTerms]
   )
+
+  async function saveDocument() {
+    if (!getToken()) return
+    await fetch("/api/documents", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeader() },
+      body: JSON.stringify({ doc_type: docType, doc_title: docTitle, fields: latestFieldsRef.current }),
+    }).catch(() => {})
+  }
 
   async function callAI(msgs: Message[]) {
     setIsStreaming(true)
@@ -82,7 +93,11 @@ export function DocChat({
               return [...prev.slice(0, -1), { ...last, content: last.content + event.content }]
             })
           } else if (event.type === "fields") {
-            setFields((prev) => ({ ...prev, ...event.data }))
+            setFields((prev) => {
+              const merged = { ...prev, ...event.data }
+              latestFieldsRef.current = merged
+              return merged
+            })
           }
         } catch {
           // ignore malformed SSE chunks
@@ -104,6 +119,7 @@ export function DocChat({
       if (buffer) processLine(buffer)
     } finally {
       setIsStreaming(false)
+      if (msgs.length > 0) saveDocument()
     }
   }
 
@@ -213,6 +229,9 @@ export function DocChat({
               Send
             </button>
           </div>
+          <p className="mt-2 text-xs text-center" style={{ color: "#888888" }}>
+            AI-generated documents are drafts only and do not constitute legal advice. Consult a qualified attorney before executing any agreement.
+          </p>
         </div>
       </aside>
 
