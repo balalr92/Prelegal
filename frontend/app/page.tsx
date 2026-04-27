@@ -19,6 +19,10 @@ export default function LoginPage() {
     e.preventDefault()
     setError("")
 
+    if (mode === "signup" && password.length < 8) {
+      setError("Password must be at least 8 characters")
+      return
+    }
     if (mode === "signup" && password !== confirmPassword) {
       setError("Passwords do not match")
       return
@@ -34,7 +38,8 @@ export default function LoginPage() {
       })
       const data = await res.json()
       if (!res.ok) {
-        setError(data.detail ?? "Something went wrong")
+        const detail = data.detail
+        setError(Array.isArray(detail) ? (detail[0]?.msg ?? "Something went wrong") : (detail ?? "Something went wrong"))
         return
       }
       setToken(data.token)
