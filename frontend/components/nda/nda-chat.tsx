@@ -31,6 +31,7 @@ export function NdaChat({ standardTerms }: { standardTerms: string }) {
   const [fields, setFields] = useState<NdaFormData>(defaultNdaValues)
   const [input, setInput] = useState("")
   const [isStreaming, setIsStreaming] = useState(false)
+  const [saved, setSaved] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const latestFieldsRef = useRef<NdaFormData>(defaultNdaValues)
 
@@ -69,6 +70,8 @@ export function NdaChat({ standardTerms }: { standardTerms: string }) {
       headers: { "Content-Type": "application/json", ...authHeader() },
       body: JSON.stringify({ doc_type: "mutual-nda", doc_title: title, fields: current }),
     }).catch(() => {})
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
   }
 
   async function callAI(msgs: Message[]) {
@@ -128,8 +131,6 @@ export function NdaChat({ standardTerms }: { standardTerms: string }) {
       if (buffer) processLine(buffer)
     } finally {
       setIsStreaming(false)
-      // Save after the very first user message (msgs.length > 0)
-      if (msgs.length > 0) saveDocument()
     }
   }
 
@@ -258,26 +259,38 @@ export function NdaChat({ standardTerms }: { standardTerms: string }) {
             <div className="w-2 h-2 rounded-full bg-green-400" />
             <span className="text-sm font-medium text-slate-700">Live Preview</span>
           </div>
-          <Suspense
-            fallback={
+          <div className="flex items-center gap-2">
+            {getToken() && (
               <button
-                disabled
-                className="px-4 py-2 text-sm font-medium rounded-lg bg-slate-100 text-slate-400 cursor-not-allowed"
+                onClick={saveDocument}
+                disabled={isStreaming || messages.length === 0}
+                className="px-4 py-2 text-sm font-semibold rounded-lg border transition disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ borderColor: "#209dd7", color: "#209dd7", backgroundColor: saved ? "#e8f6fd" : "white" }}
               >
-                Loading…
+                {saved ? "Saved!" : "Save to My Documents"}
               </button>
-            }
-          >
-            <PDFDownloadLink
-              document={pdfDocument}
-              fileName="mutual-nda.pdf"
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-lg transition shadow-sm"
-            >
-              {({ loading }: { loading: boolean }) =>
-                loading ? "Generating…" : "Download PDF"
+            )}
+            <Suspense
+              fallback={
+                <button
+                  disabled
+                  className="px-4 py-2 text-sm font-medium rounded-lg bg-slate-100 text-slate-400 cursor-not-allowed"
+                >
+                  Loading…
+                </button>
               }
-            </PDFDownloadLink>
-          </Suspense>
+            >
+              <PDFDownloadLink
+                document={pdfDocument}
+                fileName="mutual-nda.pdf"
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-lg transition shadow-sm"
+              >
+                {({ loading }: { loading: boolean }) =>
+                  loading ? "Generating…" : "Download PDF"
+                }
+              </PDFDownloadLink>
+            </Suspense>
+          </div>
         </div>
         <div className="flex-1 p-4 overflow-hidden">
           <Suspense

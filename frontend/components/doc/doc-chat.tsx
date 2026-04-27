@@ -30,6 +30,7 @@ export function DocChat({
   const [fields, setFields] = useState<Record<string, string>>({})
   const [input, setInput] = useState("")
   const [isStreaming, setIsStreaming] = useState(false)
+  const [saved, setSaved] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const latestFieldsRef = useRef<Record<string, string>>({})
 
@@ -64,6 +65,8 @@ export function DocChat({
       headers: { "Content-Type": "application/json", ...authHeader() },
       body: JSON.stringify({ doc_type: docType, doc_title: docTitle, fields: latestFieldsRef.current }),
     }).catch(() => {})
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
   }
 
   async function callAI(msgs: Message[]) {
@@ -119,7 +122,6 @@ export function DocChat({
       if (buffer) processLine(buffer)
     } finally {
       setIsStreaming(false)
-      if (msgs.length > 0) saveDocument()
     }
   }
 
@@ -242,19 +244,31 @@ export function DocChat({
             <div className="w-2 h-2 rounded-full bg-green-400" />
             <span className="text-sm font-medium text-slate-700">Live Preview</span>
           </div>
-          <Suspense fallback={
-            <button disabled className="px-4 py-2 text-sm font-medium rounded-lg bg-slate-100 text-slate-400 cursor-not-allowed">
-              Loading…
-            </button>
-          }>
-            <PDFDownloadLink
-              document={pdfDocument}
-              fileName={`${docType}.pdf`}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-lg transition shadow-sm"
-            >
-              {({ loading }: { loading: boolean }) => loading ? "Generating…" : "Download PDF"}
-            </PDFDownloadLink>
-          </Suspense>
+          <div className="flex items-center gap-2">
+            {getToken() && (
+              <button
+                onClick={saveDocument}
+                disabled={isStreaming || messages.length === 0}
+                className="px-4 py-2 text-sm font-semibold rounded-lg border transition disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ borderColor: "#209dd7", color: saved ? "#209dd7" : "#209dd7", backgroundColor: saved ? "#e8f6fd" : "white" }}
+              >
+                {saved ? "Saved!" : "Save to My Documents"}
+              </button>
+            )}
+            <Suspense fallback={
+              <button disabled className="px-4 py-2 text-sm font-medium rounded-lg bg-slate-100 text-slate-400 cursor-not-allowed">
+                Loading…
+              </button>
+            }>
+              <PDFDownloadLink
+                document={pdfDocument}
+                fileName={`${docType}.pdf`}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-lg transition shadow-sm"
+              >
+                {({ loading }: { loading: boolean }) => loading ? "Generating…" : "Download PDF"}
+              </PDFDownloadLink>
+            </Suspense>
+          </div>
         </div>
         <div className="flex-1 p-4 overflow-hidden">
           <Suspense fallback={
