@@ -46,3 +46,19 @@ def list_documents(authorization: str = Header(...)):
     ).fetchall()
     conn.close()
     return [dict(r) for r in rows]
+
+
+@router.get("/documents/{doc_id}")
+def get_document(doc_id: int, authorization: str = Header(...)):
+    user_id = _user_id_from_header(authorization)
+    conn = get_conn()
+    row = conn.execute(
+        "SELECT id, doc_type, doc_title, fields_json, created_at FROM documents WHERE id = ? AND user_id = ?",
+        (doc_id, user_id),
+    ).fetchone()
+    conn.close()
+    if not row:
+        raise HTTPException(status_code=404, detail="Document not found")
+    result = dict(row)
+    result["fields"] = json.loads(result.pop("fields_json"))
+    return result

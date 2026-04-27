@@ -50,8 +50,20 @@ export function NdaChat({ standardTerms }: { standardTerms: string }) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
-  // Trigger initial AI greeting on mount
+  // Trigger initial AI greeting on mount, preloading saved fields if available
   useEffect(() => {
+    const raw = sessionStorage.getItem("prelegal_preload")
+    if (raw) {
+      try {
+        const preload = JSON.parse(raw)
+        if (preload.doc_type === "mutual-nda" && preload.fields) {
+          sessionStorage.removeItem("prelegal_preload")
+          const merged = { ...defaultNdaValues, ...preload.fields }
+          setFields(merged)
+          latestFieldsRef.current = merged
+        }
+      } catch { /* ignore */ }
+    }
     callAI([])
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

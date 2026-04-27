@@ -49,6 +49,17 @@ export function DocChat({
   }, [messages])
 
   useEffect(() => {
+    const raw = sessionStorage.getItem("prelegal_preload")
+    if (raw) {
+      try {
+        const preload = JSON.parse(raw)
+        if (preload.doc_type === docType && preload.fields) {
+          sessionStorage.removeItem("prelegal_preload")
+          setFields(preload.fields)
+          latestFieldsRef.current = preload.fields
+        }
+      } catch { /* ignore */ }
+    }
     callAI([])
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

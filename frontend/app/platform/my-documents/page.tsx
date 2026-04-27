@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { PlatformNav } from "@/components/platform/nav"
 import { authHeader } from "@/lib/auth"
 import { SLUG_TO_FILENAME } from "@/lib/catalog"
@@ -24,9 +25,24 @@ function formatDate(iso: string): string {
 }
 
 export default function MyDocumentsPage() {
+  const router = useRouter()
   const [docs, setDocs] = useState<SavedDocument[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [opening, setOpening] = useState<number | null>(null)
+
+  async function handleOpen(doc: SavedDocument) {
+    setOpening(doc.id)
+    try {
+      const res = await fetch(`/api/documents/${doc.id}`, { headers: authHeader() })
+      if (!res.ok) throw new Error()
+      const data = await res.json()
+      sessionStorage.setItem("prelegal_preload", JSON.stringify({ doc_type: data.doc_type, fields: data.fields }))
+      router.push(`/platform/${doc.doc_type}/`)
+    } catch {
+      setOpening(null)
+    }
+  }
 
   useEffect(() => {
     fetch("/api/documents", { headers: authHeader() })
@@ -91,13 +107,23 @@ export default function MyDocumentsPage() {
                     Saved {formatDate(doc.created_at)}
                   </p>
                   {ALL_SLUGS.has(doc.doc_type) && (
-                    <Link
-                      href={`/platform/${doc.doc_type}/`}
-                      className="self-start px-3 py-1.5 text-xs font-semibold text-white rounded-lg"
-                      style={{ backgroundColor: "#753991" }}
-                    >
-                      Create New →
-                    </Link>
+                    <div className="flex items-center gap-2 mt-auto">
+                      <button
+                        onClick={() => handleOpen(doc)}
+                        disabled={opening === doc.id}
+                        className="px-3 py-1.5 text-xs font-semibold text-white rounded-lg disabled:opacity-60 disabled:cursor-not-allowed"
+                        style={{ backgroundColor: "#753991" }}
+                      >
+                        {opening === doc.id ? "Opening…" : "Open →"}
+                      </button>
+                      <Link
+                        href={`/platform/${doc.doc_type}/`}
+                        className="px-3 py-1.5 text-xs font-semibold rounded-lg border"
+                        style={{ borderColor: "#888888", color: "#888888" }}
+                      >
+                        New →
+                      </Link>
+                    </div>
                   )}
                 </div>
               ))}
