@@ -8,17 +8,23 @@ The available documents are covered in the catalog.json file in the project root
 
 @catalog.json
 
-**Current implementation status (as of PL-6):**
-- V1 technical foundation is in place: FastAPI backend (`backend/`), Next.js frontend statically built and served by FastAPI, SQLite database initialised on startup with a `users` table, Dockerfile (multi-stage build), and start/stop scripts for Mac, Linux, and Windows.
-- A fake login screen (`/`) navigates directly to the platform shell (`/platform/`) — no real authentication yet.
-- `/platform` shows a catalog grid of all 11 supported document types plus a "Help me choose" card.
+**Current implementation status (as of PL-7):**
+- V1 technical foundation is in place: FastAPI backend (`backend/`), Next.js frontend statically built and served by FastAPI, SQLite database initialised on startup, Dockerfile (multi-stage build), and start/stop scripts for Mac, Linux, and Windows.
+- Real sign-in / sign-up at `/` — PBKDF2-HMAC-SHA256 password hashing, JWT issued on login/register and stored in `localStorage`. Auth endpoints in `backend/auth.py` (`POST /api/auth/register`, `POST /api/auth/login`).
+- Platform auth guard in `frontend/app/platform/layout.tsx` — unauthenticated visitors are redirected to `/` before any content renders.
+- `/platform` shows a catalog grid of all 12 supported document types plus a "Help me choose" card.
 - Each document card links to `/platform/[slug]` — a dynamic route with `generateStaticParams` for static export. The `SLUG_TO_FILENAME` map and `buildCatalog` helper in `frontend/lib/catalog.ts` drive slug resolution across all three page types.
-- The Mutual NDA uses the existing AI chat interface (`frontend/components/nda/nda-chat.tsx`) with live PDF preview.
-- All other documents use the generic `DocChat` + `DocDocument` components (`frontend/components/doc/`), which render a cover page from extracted fields and paginate the standard terms body.
-- `/platform/help` is an AI chat (`frontend/components/help/help-chat.tsx`) that recommends the right document from a user's description and links directly to the creation flow.
-- The chat backend (`POST /api/chat`, `backend/chat.py`) routes by `doc_type`: `mutual-nda` uses `NdaFieldsPartial`, `help` uses `HelpFields`, all other slugs use `GenericDocFields` (55 optional fields). Unknown `doc_type` values return HTTP 422.
+- The Mutual NDA uses `frontend/components/nda/nda-chat.tsx` with live PDF preview. All other documents use `frontend/components/doc/doc-chat.tsx` + `DocDocument`.
+- `/platform/help` is an AI chat (`frontend/components/help/help-chat.tsx`) that recommends the right document from a user's description.
+- The chat backend (`POST /api/chat`, `backend/chat.py`) routes by `doc_type`: `mutual-nda` uses `NdaFieldsPartial`, `help` uses `HelpFields`, all other slugs use `GenericDocFields` (55 optional fields).
+- Document persistence: `backend/documents.py` exposes `POST /api/documents` (save), `GET /api/documents` (list), `GET /api/documents/{id}` (fetch with fields), `DELETE /api/documents/{id}` (delete). All endpoints are user-scoped via JWT.
+- `/platform/my-documents` lists saved drafts. Each card has **Open** (preloads saved fields via `sessionStorage` then navigates to the doc page), **New** (fresh session), and **Delete** buttons.
+- Chat components preload saved fields on mount by reading `sessionStorage` key `prelegal_preload` (set by the Open flow), so the PDF renders the saved state immediately.
+- Explicit **Save to My Documents** button in the PDF preview header bar of each chat page — no auto-saving.
+- Nav shows user initial avatar, "My Documents" link, and sign-out button.
+- Legal disclaimer shown below the chat input in all three chat components.
 - Markdown is rendered in AI chat responses via `react-markdown`.
-- Real authentication and document persistence are not yet built.
+- Database (`prelegal.db`) is SQLite, created fresh on each container start — data does not persist across restarts.
 
 ## Development process
 
@@ -39,7 +45,7 @@ There is an OPENAI_API_KEY in the .env file in the project root.
 The entire project is packaged into a Docker container (multi-stage build: Node builds Next.js static export, Python runtime serves it via FastAPI).  
 The backend is in `backend/` — a uv project using FastAPI, running at http://localhost:8000.  
 The frontend is in `frontend/` — Next.js with `output: 'export'`; the static build (`out/`) is served by FastAPI via `StaticFiles`.  
-The database uses SQLite (`prelegal.db`), created from scratch each time the container starts, with a `users` table for future sign-up and sign-in.  
+The database uses SQLite (`prelegal.db`), created from scratch each time the container starts, with `users` and `documents` tables (see `backend/db.py`).  
 Scripts are in `scripts/` for:  
 ```bash
 # Mac
