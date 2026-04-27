@@ -30,6 +30,17 @@ export default function MyDocumentsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [opening, setOpening] = useState<number | null>(null)
+  const [deleting, setDeleting] = useState<number | null>(null)
+
+  async function handleDelete(doc: SavedDocument) {
+    setDeleting(doc.id)
+    try {
+      await fetch(`/api/documents/${doc.id}`, { method: "DELETE", headers: authHeader() })
+      setDocs((prev) => prev.filter((d) => d.id !== doc.id))
+    } finally {
+      setDeleting(null)
+    }
+  }
 
   async function handleOpen(doc: SavedDocument) {
     setOpening(doc.id)
@@ -106,25 +117,34 @@ export default function MyDocumentsPage() {
                   <p className="text-xs mb-4" style={{ color: "#888888" }}>
                     Saved {formatDate(doc.created_at)}
                   </p>
-                  {ALL_SLUGS.has(doc.doc_type) && (
-                    <div className="flex items-center gap-2 mt-auto">
-                      <button
-                        onClick={() => handleOpen(doc)}
-                        disabled={opening === doc.id}
-                        className="px-3 py-1.5 text-xs font-semibold text-white rounded-lg disabled:opacity-60 disabled:cursor-not-allowed"
-                        style={{ backgroundColor: "#753991" }}
-                      >
-                        {opening === doc.id ? "Opening…" : "Open →"}
-                      </button>
-                      <Link
-                        href={`/platform/${doc.doc_type}/`}
-                        className="px-3 py-1.5 text-xs font-semibold rounded-lg border"
-                        style={{ borderColor: "#888888", color: "#888888" }}
-                      >
-                        New →
-                      </Link>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2 mt-auto flex-wrap">
+                    {ALL_SLUGS.has(doc.doc_type) && (
+                      <>
+                        <button
+                          onClick={() => handleOpen(doc)}
+                          disabled={opening === doc.id}
+                          className="px-3 py-1.5 text-xs font-semibold text-white rounded-lg disabled:opacity-60 disabled:cursor-not-allowed"
+                          style={{ backgroundColor: "#753991" }}
+                        >
+                          {opening === doc.id ? "Opening…" : "Open →"}
+                        </button>
+                        <Link
+                          href={`/platform/${doc.doc_type}/`}
+                          className="px-3 py-1.5 text-xs font-semibold rounded-lg border"
+                          style={{ borderColor: "#888888", color: "#888888" }}
+                        >
+                          New →
+                        </Link>
+                      </>
+                    )}
+                    <button
+                      onClick={() => handleDelete(doc)}
+                      disabled={deleting === doc.id}
+                      className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-red-200 text-red-400 hover:bg-red-50 disabled:opacity-60 disabled:cursor-not-allowed transition ml-auto"
+                    >
+                      {deleting === doc.id ? "Deleting…" : "Delete"}
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

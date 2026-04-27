@@ -48,6 +48,20 @@ def list_documents(authorization: str = Header(...)):
     return [dict(r) for r in rows]
 
 
+@router.delete("/documents/{doc_id}", status_code=204)
+def delete_document(doc_id: int, authorization: str = Header(...)):
+    user_id = _user_id_from_header(authorization)
+    conn = get_conn()
+    result = conn.execute(
+        "DELETE FROM documents WHERE id = ? AND user_id = ?",
+        (doc_id, user_id),
+    )
+    conn.commit()
+    conn.close()
+    if result.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+
 @router.get("/documents/{doc_id}")
 def get_document(doc_id: int, authorization: str = Header(...)):
     user_id = _user_id_from_header(authorization)
