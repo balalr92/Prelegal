@@ -8,7 +8,7 @@ The available documents are covered in the catalog.json file in the project root
 
 @catalog.json
 
-**Current implementation status (as of PL-7):**
+**V1 complete — all tickets (PL-1 through PL-7) Done.**
 - V1 technical foundation is in place: FastAPI backend (`backend/`), Next.js frontend statically built and served by FastAPI, SQLite database initialised on startup, Dockerfile (multi-stage build), and start/stop scripts for Mac, Linux, and Windows.
 - Real sign-in / sign-up at `/` — PBKDF2-HMAC-SHA256 password hashing, JWT issued on login/register and stored in `localStorage`. Auth endpoints in `backend/auth.py` (`POST /api/auth/register`, `POST /api/auth/login`).
 - Platform auth guard in `frontend/app/platform/layout.tsx` — unauthenticated visitors are redirected to `/` before any content renders.
