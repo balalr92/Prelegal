@@ -5,6 +5,7 @@ import dynamic from "next/dynamic"
 import ReactMarkdown from "react-markdown"
 import { defaultNdaValues, type NdaFormData } from "@/lib/nda-schema"
 import { NdaDocument } from "./nda-document"
+import { authHeader, getToken } from "@/lib/auth"
 
 const PDFViewer = dynamic(
   () => import("@react-pdf/renderer").then((m) => m.PDFViewer),
@@ -17,12 +18,22 @@ const PDFDownloadLink = dynamic(
 
 type Message = { role: "user" | "assistant"; content: string }
 
+function buildNdaTitle(fields: NdaFormData): string {
+  const a = fields.party1Company
+  const b = fields.party2Company
+  if (a && b) return `${a} / ${b} Mutual NDA`
+  if (a) return `${a} — Mutual NDA`
+  return "Mutual NDA"
+}
+
 export function NdaChat({ standardTerms }: { standardTerms: string }) {
   const [messages, setMessages] = useState<Message[]>([])
   const [fields, setFields] = useState<NdaFormData>(defaultNdaValues)
   const [input, setInput] = useState("")
   const [isStreaming, setIsStreaming] = useState(false)
+  const [saved, setSaved] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const latestFieldsRef = useRef<NdaFormData>(defaultNdaValues)
 
   // Debounce PDF updates so it doesn't regenerate on every field change
   const serializedFields = JSON.stringify(fields)
@@ -39,8 +50,20 @@ export function NdaChat({ standardTerms }: { standardTerms: string }) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
-  // Trigger initial AI greeting on mount
+  // Trigger initial AI greeting on mount, preloading saved fields if available
   useEffect(() => {
+    const raw = sessionStorage.getItem("prelegal_preload")
+    if (raw) {
+      try {
+        const preload = JSON.parse(raw)
+        if (preload.doc_type === "mutual-nda" && preload.fields) {
+          sessionStorage.removeItem("prelegal_preload")
+          const merged = { ...defaultNdaValues, ...preload.fields }
+          setFields(merged)
+          latestFieldsRef.current = merged
+        }
+      } catch { /* ignore */ }
+    }
     callAI([])
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -49,6 +72,19 @@ export function NdaChat({ standardTerms }: { standardTerms: string }) {
     () => <NdaDocument data={pdfData} standardTerms={standardTerms} />,
     [pdfData, standardTerms]
   )
+
+  async function saveDocument() {
+    if (!getToken()) return
+    const current = latestFieldsRef.current
+    const title = buildNdaTitle(current)
+    await fetch("/api/documents", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeader() },
+      body: JSON.stringify({ doc_type: "mutual-nda", doc_title: title, fields: current }),
+    }).catch(() => {})
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }
 
   async function callAI(msgs: Message[]) {
     setIsStreaming(true)
@@ -80,7 +116,11 @@ export function NdaChat({ standardTerms }: { standardTerms: string }) {
               ]
             })
           } else if (event.type === "fields") {
-            setFields((prev) => ({ ...prev, ...event.data }))
+            setFields((prev) => {
+              const merged = { ...prev, ...event.data }
+              latestFieldsRef.current = merged
+              return merged
+            })
           }
         } catch {
           // ignore malformed SSE chunks
@@ -218,6 +258,9 @@ export function NdaChat({ standardTerms }: { standardTerms: string }) {
               Send
             </button>
           </div>
+          <p className="mt-2 text-xs text-center" style={{ color: "#888888" }}>
+            AI-generated documents are drafts only and do not constitute legal advice. Consult a qualified attorney before executing any agreement.
+          </p>
         </div>
       </aside>
 
@@ -228,26 +271,38 @@ export function NdaChat({ standardTerms }: { standardTerms: string }) {
             <div className="w-2 h-2 rounded-full bg-green-400" />
             <span className="text-sm font-medium text-slate-700">Live Preview</span>
           </div>
-          <Suspense
-            fallback={
+          <div className="flex items-center gap-2">
+            {getToken() && (
               <button
-                disabled
-                className="px-4 py-2 text-sm font-medium rounded-lg bg-slate-100 text-slate-400 cursor-not-allowed"
+                onClick={saveDocument}
+                disabled={isStreaming || messages.length === 0}
+                className="px-4 py-2 text-sm font-semibold rounded-lg border transition disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ borderColor: "#209dd7", color: "#209dd7", backgroundColor: saved ? "#e8f6fd" : "white" }}
               >
-                Loading…
+                {saved ? "Saved!" : "Save to My Documents"}
               </button>
-            }
-          >
-            <PDFDownloadLink
-              document={pdfDocument}
-              fileName="mutual-nda.pdf"
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-lg transition shadow-sm"
-            >
-              {({ loading }: { loading: boolean }) =>
-                loading ? "Generating…" : "Download PDF"
+            )}
+            <Suspense
+              fallback={
+                <button
+                  disabled
+                  className="px-4 py-2 text-sm font-medium rounded-lg bg-slate-100 text-slate-400 cursor-not-allowed"
+                >
+                  Loading…
+                </button>
               }
-            </PDFDownloadLink>
-          </Suspense>
+            >
+              <PDFDownloadLink
+                document={pdfDocument}
+                fileName="mutual-nda.pdf"
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-lg transition shadow-sm"
+              >
+                {({ loading }: { loading: boolean }) =>
+                  loading ? "Generating…" : "Download PDF"
+                }
+              </PDFDownloadLink>
+            </Suspense>
+          </div>
         </div>
         <div className="flex-1 p-4 overflow-hidden">
           <Suspense

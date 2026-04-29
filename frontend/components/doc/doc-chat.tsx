@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useRef, Suspense } from "react"
 import dynamic from "next/dynamic"
 import ReactMarkdown from "react-markdown"
 import { DocDocument } from "./doc-document"
+import { authHeader, getToken } from "@/lib/auth"
 
 const PDFViewer = dynamic(
   () => import("@react-pdf/renderer").then((m) => m.PDFViewer),
@@ -29,7 +30,9 @@ export function DocChat({
   const [fields, setFields] = useState<Record<string, string>>({})
   const [input, setInput] = useState("")
   const [isStreaming, setIsStreaming] = useState(false)
+  const [saved, setSaved] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const latestFieldsRef = useRef<Record<string, string>>({})
 
   // Debounce PDF updates
   const serializedFields = JSON.stringify(fields)
@@ -46,6 +49,17 @@ export function DocChat({
   }, [messages])
 
   useEffect(() => {
+    const raw = sessionStorage.getItem("prelegal_preload")
+    if (raw) {
+      try {
+        const preload = JSON.parse(raw)
+        if (preload.doc_type === docType && preload.fields) {
+          sessionStorage.removeItem("prelegal_preload")
+          setFields(preload.fields)
+          latestFieldsRef.current = preload.fields
+        }
+      } catch { /* ignore */ }
+    }
     callAI([])
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -54,6 +68,17 @@ export function DocChat({
     () => <DocDocument data={pdfData} docTitle={docTitle} standardTerms={standardTerms} />,
     [pdfData, docTitle, standardTerms]
   )
+
+  async function saveDocument() {
+    if (!getToken()) return
+    await fetch("/api/documents", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeader() },
+      body: JSON.stringify({ doc_type: docType, doc_title: docTitle, fields: latestFieldsRef.current }),
+    }).catch(() => {})
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }
 
   async function callAI(msgs: Message[]) {
     setIsStreaming(true)
@@ -82,7 +107,11 @@ export function DocChat({
               return [...prev.slice(0, -1), { ...last, content: last.content + event.content }]
             })
           } else if (event.type === "fields") {
-            setFields((prev) => ({ ...prev, ...event.data }))
+            setFields((prev) => {
+              const merged = { ...prev, ...event.data }
+              latestFieldsRef.current = merged
+              return merged
+            })
           }
         } catch {
           // ignore malformed SSE chunks
@@ -213,6 +242,9 @@ export function DocChat({
               Send
             </button>
           </div>
+          <p className="mt-2 text-xs text-center" style={{ color: "#888888" }}>
+            AI-generated documents are drafts only and do not constitute legal advice. Consult a qualified attorney before executing any agreement.
+          </p>
         </div>
       </aside>
 
@@ -223,19 +255,31 @@ export function DocChat({
             <div className="w-2 h-2 rounded-full bg-green-400" />
             <span className="text-sm font-medium text-slate-700">Live Preview</span>
           </div>
-          <Suspense fallback={
-            <button disabled className="px-4 py-2 text-sm font-medium rounded-lg bg-slate-100 text-slate-400 cursor-not-allowed">
-              Loading…
-            </button>
-          }>
-            <PDFDownloadLink
-              document={pdfDocument}
-              fileName={`${docType}.pdf`}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-lg transition shadow-sm"
-            >
-              {({ loading }: { loading: boolean }) => loading ? "Generating…" : "Download PDF"}
-            </PDFDownloadLink>
-          </Suspense>
+          <div className="flex items-center gap-2">
+            {getToken() && (
+              <button
+                onClick={saveDocument}
+                disabled={isStreaming || messages.length === 0}
+                className="px-4 py-2 text-sm font-semibold rounded-lg border transition disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ borderColor: "#209dd7", color: saved ? "#209dd7" : "#209dd7", backgroundColor: saved ? "#e8f6fd" : "white" }}
+              >
+                {saved ? "Saved!" : "Save to My Documents"}
+              </button>
+            )}
+            <Suspense fallback={
+              <button disabled className="px-4 py-2 text-sm font-medium rounded-lg bg-slate-100 text-slate-400 cursor-not-allowed">
+                Loading…
+              </button>
+            }>
+              <PDFDownloadLink
+                document={pdfDocument}
+                fileName={`${docType}.pdf`}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-lg transition shadow-sm"
+              >
+                {({ loading }: { loading: boolean }) => loading ? "Generating…" : "Download PDF"}
+              </PDFDownloadLink>
+            </Suspense>
+          </div>
         </div>
         <div className="flex-1 p-4 overflow-hidden">
           <Suspense fallback={
